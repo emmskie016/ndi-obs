@@ -1,0 +1,82 @@
+{
+  "name": "SlideLive — Bible Verse Lookup",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "bible-verse-lookup",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\nconst book = body.book || 'John';\nconst chapter = body.chapter || 1;\nconst verse = body.verse || 1;\nconst verseEnd = body.verseEnd ? '-' + body.verseEnd : '';\nconst raw = body.translation || 'kjv';\nconst copyrighted = ['niv','esv','csb','nlt','nasb','msg','amp','nrsv'];\nconst translation = copyrighted.includes(raw.toLowerCase()) ? 'kjv' : raw.toLowerCase();\nconst url = `https://bible-api.com/${encodeURIComponent(book + ' ' + chapter + ':' + verse + verseEnd)}?translation=${translation}`;\nreturn [{ json: { url, book, chapter, verse, verseEnd, translation } }];"
+      },
+      "id": "node-build-url",
+      "name": "Build URL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.url }}",
+        "options": {}
+      },
+      "id": "node-fetch",
+      "name": "Fetch Verse",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nreturn [{ json: { text: (d.text || '').trim(), reference: d.reference || '', translation: d.translation_name || '' } }];"
+      },
+      "id": "node-extract",
+      "name": "Extract",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              { "name": "Access-Control-Allow-Origin", "value": "*" }
+            ]
+          }
+        }
+      },
+      "id": "node-respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1120, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Build URL", "type": "main", "index": 0 }]]
+    },
+    "Build URL": {
+      "main": [[{ "node": "Fetch Verse", "type": "main", "index": 0 }]]
+    },
+    "Fetch Verse": {
+      "main": [[{ "node": "Extract", "type": "main", "index": 0 }]]
+    },
+    "Extract": {
+      "main": [[{ "node": "Respond", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}
