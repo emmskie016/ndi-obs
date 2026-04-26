@@ -1,9 +1,8 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Song, Scripture, QueueItem, PipLayout, PipPosition, BroadcastState } from './types'
+import type { Song, Scripture, QueueItem, PipLayout, PipPosition, BroadcastState, LiveSlide } from './types'
 import { seedSongs, seedScriptures } from './seed'
 
-// BroadcastChannel for same-browser tabs
 const CHANNEL = 'slidelivechannel'
 let bc: BroadcastChannel | null = null
 function getBroadcast() {
@@ -11,13 +10,53 @@ function getBroadcast() {
   return bc
 }
 
-// SSE server push — works across OBS Browser Source
 function pushToServer(state: BroadcastState) {
   fetch('/api/state', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(state),
   }).catch(() => {})
+}
+
+function clamp2Lines(text: string): string {
+  const lines = text.split('\n').filter((l) => l.trim() !== '')
+  return lines.slice(0, 2).join('\n')
+}
+
+function resolveSlide(
+  songs: Song[],
+  scriptures: Scripture[],
+  activeItemId: string | null,
+  activeSlideId: string | null,
+): LiveSlide | null {
+  if (!activeItemId) return null
+
+  const song = songs.find((s) => s.id === activeItemId)
+  if (song) {
+    const slide = song.slides.find((s) => s.id === activeSlideId)
+    if (!slide || slide.type === 'blank') return null
+    return {
+      text: clamp2Lines(slide.text),
+      reference: `${song.title} — ${slide.label}`,
+      background: song.background,
+      textColor: song.textColor,
+    }
+  }
+
+  const scripture = scriptures.find((s) => s.id === activeItemId)
+  if (scripture) {
+    const words = scripture.text.split(' ')
+    const mid = Math.ceil(words.length / 2)
+    const text = [words.slice(0, mid).join(' '), words.slice(mid).join(' ')].filter(Boolean).join('\n')
+    return {
+      text,
+      reference: scripture.displayLabel,
+      background: '#000000',
+      textColor: '#ffffff',
+    }
+  }
+
+  return null
 }
 
 interface Store {
@@ -30,6 +69,7 @@ interface Store {
   showReference: boolean
   pipLayout: PipLayout
   pipPosition: PipPosition
+  liveSlide: LiveSlide | null
   addSong: (s: Song) => void
   updateSong: (s: Song) => void
   deleteSong: (id: string) => void
@@ -62,6 +102,7 @@ export const useStore = create<Store>()(
       showReference: true,
       pipLayout: 'lower-third',
       pipPosition: 'bottom-left',
+      liveSlide: null,
 
       addSong: (s) => set((st) => ({ songs: [...st.songs, s] })),
       updateSong: (s) => set((st) => ({ songs: st.songs.map((x) => (x.id === s.id ? s : x)) })),
@@ -81,10 +122,16 @@ export const useStore = create<Store>()(
         }),
 
       setActiveItem: (id) => set({ activeItemId: id }),
+
       setActiveSlide: (slideId) => {
-        set({ activeSlideId: slideId, isBlanked: false })
+        set((st) => ({
+          activeSlideId: slideId,
+          isBlanked: false,
+          liveSlide: resolveSlide(st.songs, st.scriptures, st.activeItemId, slideId),
+        }))
         setTimeout(() => get().broadcast(), 0)
       },
+
       toggleBlank: () => {
         set((st) => ({ isBlanked: !st.isBlanked }))
         setTimeout(() => get().broadcast(), 0)
@@ -107,11 +154,9 @@ export const useStore = create<Store>()(
       },
 
       broadcast: () => {
-        const { activeItemId, activeSlideId, isBlanked, showReference, pipLayout, pipPosition } = get()
-        const state: BroadcastState = { activeItemId, activeSlideId, isBlanked, showReference, pipLayout, pipPosition }
-        // same-browser tabs
+        const { activeItemId, activeSlideId, isBlanked, showReference, pipLayout, pipPosition, liveSlide } = get()
+        const state: BroadcastState = { activeItemId, activeSlideId, isBlanked, showReference, pipLayout, pipPosition, liveSlide }
         getBroadcast().postMessage(state)
-        // OBS browser source (different process)
         pushToServer(state)
       },
 
@@ -123,6 +168,7 @@ export const useStore = create<Store>()(
           showReference: s.showReference,
           pipLayout: s.pipLayout,
           pipPosition: s.pipPosition,
+          liveSlide: s.liveSlide,
         }),
     }),
     {
@@ -132,7 +178,6 @@ export const useStore = create<Store>()(
   )
 )
 
-// same-browser tab sync
 getBroadcast().onmessage = (e) => {
   useStore.getState().applyBroadcast(e.data as BroadcastState)
 }

@@ -37,6 +37,14 @@ export type QueueItem =
 export type PipLayout = 'lower-third' | 'pip-box' | 'full-overlay'
 export type PipPosition = 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right'
 
+// Resolved slide content — sent over SSE so OBS doesn't need localStorage
+export interface LiveSlide {
+  text: string          // actual lyrics / scripture text (max 2 lines applied)
+  reference: string     // "Amazing Grace — Verse 1" or "John 3:16 NIV"
+  background: string    // hex color
+  textColor: string
+}
+
 export interface BroadcastState {
   activeItemId: string | null
   activeSlideId: string | null
@@ -44,4 +52,5 @@ export interface BroadcastState {
   showReference: boolean
   pipLayout: PipLayout
   pipPosition: PipPosition
+  liveSlide: LiveSlide | null  // full resolved content for OBS
 }

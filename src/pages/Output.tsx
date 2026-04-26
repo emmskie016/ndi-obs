@@ -1,34 +1,29 @@
 import React, { useEffect } from 'react'
 import { useStore } from '../store'
-import SlideText from '../components/SlideText'
 import { useLiveState } from '../hooks/useLiveState'
 
 export default function Output() {
   useLiveState()
-  const { activeItemId, activeSlideId, isBlanked, songs, scriptures } = useStore()
+  const { liveSlide, isBlanked } = useStore()
 
-  useEffect(() => {
-    document.title = 'SlideLive Output'
-  }, [])
-
-  const song = songs.find((s) => s.id === activeItemId) ?? null
-  const scripture = scriptures.find((s) => s.id === activeItemId) ?? null
-  const bg = song ? song.background : '#000000'
+  useEffect(() => { document.title = 'SlideLive Output' }, [])
 
   return (
     <div
       className="w-screen h-screen flex items-center justify-center overflow-hidden"
-      style={{ background: isBlanked ? '#000000' : bg }}
+      style={{ background: isBlanked ? '#000' : (liveSlide?.background ?? '#000') }}
     >
-      {!isBlanked && (
-        <SlideText
-          song={song}
-          scripture={scripture}
-          slideId={activeSlideId}
-          showReference={false}
-          maxLines={2}
-          className="w-full h-full"
-        />
+      {!isBlanked && liveSlide && (
+        <p
+          className="text-center font-bold leading-tight whitespace-pre-line px-12"
+          style={{
+            color: liveSlide.textColor,
+            fontSize: 'clamp(2.5rem, 6vw, 5rem)',
+            textShadow: '0 2px 12px rgba(0,0,0,0.9)',
+          }}
+        >
+          {liveSlide.text}
+        </p>
       )}
     </div>
   )
