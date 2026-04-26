@@ -33,7 +33,7 @@ export default function PipOutput() {
       <div className="w-screen h-screen relative" style={{ background: transparent ? 'transparent' : 'transparent' }}>
         <div className="absolute bottom-0 left-0 right-0 px-12 py-8"
           style={{ background: 'rgba(0,0,0,0.78)', backdropFilter: 'blur(4px)' }}>
-          <SlideText song={song} scripture={scripture} slideId={activeSlideId} showReference={showReference} className="text-left items-start" />
+          <SlideText song={song} scripture={scripture} slideId={activeSlideId} showReference={showReference} maxLines={2} className="text-left items-start" />
         </div>
       </div>
     )
@@ -44,7 +44,7 @@ export default function PipOutput() {
       <div className="w-screen h-screen relative" style={{ background: transparent ? 'transparent' : 'transparent' }}>
         <div className={`absolute ${posClass[pipPosition]} w-[640px] rounded-xl overflow-hidden`}
           style={{ background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(6px)' }}>
-          <SlideText song={song} scripture={scripture} slideId={activeSlideId} showReference={showReference} className="p-6" />
+          <SlideText song={song} scripture={scripture} slideId={activeSlideId} showReference={showReference} maxLines={2} className="p-6" />
         </div>
       </div>
     )
@@ -53,7 +53,7 @@ export default function PipOutput() {
   // full-overlay
   return (
     <div className="w-screen h-screen flex items-center justify-center" style={{ background: transparent ? 'transparent' : 'transparent' }}>
-      <SlideText song={song} scripture={scripture} slideId={activeSlideId} showReference={showReference} className="w-full h-full" />
+      <SlideText song={song} scripture={scripture} slideId={activeSlideId} showReference={showReference} maxLines={2} className="w-full h-full" />
     </div>
   )
 }

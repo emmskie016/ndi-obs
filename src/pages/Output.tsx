@@ -26,6 +26,7 @@ export default function Output() {
           scripture={scripture}
           slideId={activeSlideId}
           showReference={false}
+          maxLines={2}
           className="w-full h-full"
         />
       )}
