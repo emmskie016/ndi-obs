@@ -3,28 +3,33 @@ import { persist } from 'zustand/middleware'
 import type { Song, Scripture, QueueItem, PipLayout, PipPosition, BroadcastState } from './types'
 import { seedSongs, seedScriptures } from './seed'
 
+// BroadcastChannel for same-browser tabs
 const CHANNEL = 'slidelivechannel'
 let bc: BroadcastChannel | null = null
-
 function getBroadcast() {
   if (!bc) bc = new BroadcastChannel(CHANNEL)
   return bc
 }
 
+// SSE server push — works across OBS Browser Source
+function pushToServer(state: BroadcastState) {
+  fetch('/api/state', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(state),
+  }).catch(() => {})
+}
+
 interface Store {
-  // library
   songs: Song[]
   scriptures: Scripture[]
-  // service queue
   queue: QueueItem[]
-  // operator state
   activeItemId: string | null
   activeSlideId: string | null
   isBlanked: boolean
   showReference: boolean
   pipLayout: PipLayout
   pipPosition: PipPosition
-  // actions
   addSong: (s: Song) => void
   updateSong: (s: Song) => void
   deleteSong: (id: string) => void
@@ -103,7 +108,11 @@ export const useStore = create<Store>()(
 
       broadcast: () => {
         const { activeItemId, activeSlideId, isBlanked, showReference, pipLayout, pipPosition } = get()
-        getBroadcast().postMessage({ activeItemId, activeSlideId, isBlanked, showReference, pipLayout, pipPosition })
+        const state: BroadcastState = { activeItemId, activeSlideId, isBlanked, showReference, pipLayout, pipPosition }
+        // same-browser tabs
+        getBroadcast().postMessage(state)
+        // OBS browser source (different process)
+        pushToServer(state)
       },
 
       applyBroadcast: (s) =>
@@ -123,7 +132,7 @@ export const useStore = create<Store>()(
   )
 )
 
-// listen for cross-tab broadcasts
+// same-browser tab sync
 getBroadcast().onmessage = (e) => {
   useStore.getState().applyBroadcast(e.data as BroadcastState)
 }

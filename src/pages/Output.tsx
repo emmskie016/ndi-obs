@@ -1,8 +1,10 @@
 import React, { useEffect } from 'react'
 import { useStore } from '../store'
 import SlideText from '../components/SlideText'
+import { useLiveState } from '../hooks/useLiveState'
 
 export default function Output() {
+  useLiveState()
   const { activeItemId, activeSlideId, isBlanked, songs, scriptures } = useStore()
 
   useEffect(() => {

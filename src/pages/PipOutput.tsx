@@ -2,8 +2,10 @@ import React, { useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useStore } from '../store'
 import SlideText from '../components/SlideText'
+import { useLiveState } from '../hooks/useLiveState'
 
 export default function PipOutput() {
+  useLiveState()
   const [params] = useSearchParams()
   const transparent = params.get('bg') === 'transparent'
   const { activeItemId, activeSlideId, isBlanked, showReference, pipLayout, pipPosition, songs, scriptures } = useStore()
